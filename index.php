@@ -169,6 +169,9 @@ if ($nodelist->length === 0) {	// this player isn't on realmeye
 		} else if ($test1 === 'Created') {
 			$final_output['created'] = $test2;
 			$logger->trace('created = ' . $final_output['created']);
+		} else if ($test1 === 'First seen') {
+			$final_output['player_first_seen'] = $test2;
+			$logger->trace('player_first_seen = ' . $final_output['player_first_seen']);
 		} else if ($test1 === 'Last seen') {
 			$final_output['player_last_seen'] = $test2;
 			$logger->trace(
