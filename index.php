@@ -5,8 +5,7 @@ Scrapes character information for a specific player
 */
 declare(strict_types=1);
 
-define('__ROOT__', dirname(dirname(__FILE__)));
-require_once(__ROOT__.'classes/RealmEyeAPIUtils.php');
+require_once('classes/RealmEyeAPIUtils.php');
 new RealmEyeAPIUtils();
 $config = RealmEyeAPIUtils::$config;
 $logger = RealmEyeAPIUtils::$logger;
@@ -65,7 +64,7 @@ if (
 	echo_json_and_exit(['error' => 'Invalid callback name']);
 }
 
-require_once(__ROOT__.'items.php'); // import items definitions
+require_once 'items.php'; // import items definitions
 
 // set up some initial vars
 $final_output = [];
