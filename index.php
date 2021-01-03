@@ -13,7 +13,7 @@ $logger = RealmEyeAPIUtils::$logger;
 // Set user agent (for RealmEye calls)
 ini_set(
 	'user_agent',
-	'Realmeye-API/0.4 (https://github.com/Nightfirecat/RealmEye-API)'
+	'Realmeye-API/1.2 (https://github.com/Jacobvs/RealmEye-API)'
 );
 
 // Emit RealmEye-API-Version header if config is absent or if
@@ -64,13 +64,15 @@ if (
 	echo_json_and_exit(['error' => 'Invalid callback name']);
 }
 
-require_once 'items.php'; // import items definitions
+require_once('items.php'); // import items definitions
 
 // set up some initial vars
 $final_output = [];
 $callback = isset($_GET['callback']) ? $_GET['callback'] : false;
 $logger->debug('callback = ' . $callback);
 $url = 'https://www.realmeye.com/player/' . $player . '/';
+$nameurl ='https://www.realmeye.com/name-history-of-player/' . $player . '/';
+$statsurl = 'https://www.realmeye.com/graveyard-summary-of-player/' . $player . '/';
 
 // set up xpath; ignore "Tag ... invalid" warnings
 libxml_use_internal_errors(true);
@@ -129,6 +131,11 @@ if ($nodelist->length === 0) {	// this player isn't on realmeye
 				'skins/skins_rank = ' . $final_output['skins'] . '/' .
 				$final_output['skins_rank']
 			);
+		} else if ($test1 === 'Exaltations') {
+			$final_output['exaltations'] = ((int) preg_replace($regex1, '$1', $test2));
+			$logger->trace(
+				'exaltations = ' . $final_output['exaltations']
+			);
 		} else if ($test1 === 'Fame') {
 			$final_output['fame'] = ((int) preg_replace($regex1, '$1', $test2));
 			$final_output['fame_rank'] = !strstr($test2, '(') ? -1 : ((int) preg_replace($regex2, '$1', $test2));
@@ -183,10 +190,22 @@ if ($nodelist->length === 0) {	// this player isn't on realmeye
 		'chars',
 		'skins',
 		'skins_rank',
+		'exaltations',
 	];
 	foreach ($hidden_chars_attributes as $hidden_attribute) {
 		if (!isset($final_output[$hidden_attribute])) {
 			$final_output[$hidden_attribute] = -1;
+			$logger->trace(
+				$hidden_attribute . ' = ' . $final_output[$hidden_attribute]
+			);
+		}
+	}
+	$private_chars_attributes = [
+		'exaltations',
+	];
+	foreach ($hidden_chars_attributes as $hidden_attribute) {
+		if (!isset($final_output[$hidden_attribute])) {
+			$final_output[$hidden_attribute] = "Hidden";
 			$logger->trace(
 				$hidden_attribute . ' = ' . $final_output[$hidden_attribute]
 			);
@@ -422,6 +441,33 @@ if ($nodelist->length === 0) {	// this player isn't on realmeye
 		}
 		$logger->trace('End of character table parsing: ' . microtime());
 	}
+
+	libxml_use_internal_errors(true);
+	$dom = new DOMDocument();
+	$logger->trace('Start of HTML loading: ' . microtime());
+	$dom->loadHTMLFile($url);
+	$logger->trace('End of HTML loading: ' . microtime());
+	foreach (libxml_get_errors() as $libxml_error) {
+		if (!RealmEyeAPIUtils::libxml_error_is_tag_warning($libxml_error)) {
+			$logger->warn(
+				'DOMDocument::loadHTMLFile(): libXML error: ' .
+				trim($libxml_error->message) . ' in ' . $libxml_error->file .
+				', line ' . $libxml_error->line . ' col ' . $libxml_error->column
+			);
+		}
+	}
+	libxml_clear_errors();
+	libxml_use_internal_errors(false);
+	$xpath = new DOMXPath($dom);
+	$nodelist = $xpath->query('//table[@class="table table-striped main-achievements"]//th');
+	$graveyard_summary = [];
+	foreach ($nodelist as $node) {
+		$test1 = $node->childNodes->item(1)->nodeValue;
+		$test2 = $node->childNodes->item(2)->nodeValue;
+		$graveyard_summary[$test1] = $test2;
+	}
+	$final_output['graveyard_summary'] = $graveyard_summary;
+
 
 	$final_output = RealmEyeAPIUtils::ksort_recursive($final_output);
 	$intersect_filter = RealmEyeAPIUtils::apply_filter($final_output, $_GET['filter']);
