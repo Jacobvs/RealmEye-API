@@ -445,7 +445,7 @@ if ($nodelist->length === 0) {	// this player isn't on realmeye
 	libxml_use_internal_errors(true);
 	$dom = new DOMDocument();
 	$logger->trace('Start of HTML loading: ' . microtime());
-	$dom->loadHTMLFile($url);
+	$dom->loadHTMLFile($statsurl);
 	$logger->trace('End of HTML loading: ' . microtime());
 	foreach (libxml_get_errors() as $libxml_error) {
 		if (!RealmEyeAPIUtils::libxml_error_is_tag_warning($libxml_error)) {
