@@ -74,10 +74,18 @@ $url = 'https://www.realmeye.com/player/' . $player . '/';
 $nameurl ='https://www.realmeye.com/name-history-of-player/' . $player . '/';
 $statsurl = 'https://www.realmeye.com/graveyard-summary-of-player/' . $player . '/';
 
+$arrContextOptions=array(
+    "ssl"=>array(
+        "verify_peer"=>false,
+        "verify_peer_name"=>false,
+    ),
+);  
+
 // set up xpath; ignore "Tag ... invalid" warnings
 libxml_use_internal_errors(true);
 $dom = new DOMDocument();
 $logger->trace('Start of HTML loading: ' . microtime());
+libxml_set_streams_context(stream_context_create(array('ssl' => array('verify_peer' => false, 'verify_peer_name' => false))));
 $dom->loadHTMLFile($url);
 $logger->trace('End of HTML loading: ' . microtime());
 foreach (libxml_get_errors() as $libxml_error) {
@@ -445,6 +453,7 @@ if ($nodelist->length === 0) {	// this player isn't on realmeye
 	libxml_use_internal_errors(true);
 	$dom = new DOMDocument();
 	$logger->trace('Start of HTML loading: ' . microtime());
+	$response = file_get_contents($statsurl, false, stream_context_create(array('ssl' => array('verify_peer' => false, 'verify_peer_name' => false))));
 	$dom->loadHTMLFile($statsurl);
 	$logger->trace('End of HTML loading: ' . microtime());
 	foreach (libxml_get_errors() as $libxml_error) {
@@ -459,14 +468,13 @@ if ($nodelist->length === 0) {	// this player isn't on realmeye
 	libxml_clear_errors();
 	libxml_use_internal_errors(false);
 	$xpath = new DOMXPath($dom);
-	$nodelist = $xpath->query('//table[@class="table table-striped main-achievements"]//th');
+	$nodelist = $xpath->query('//table[@id="f"]/tbody/tr');
 	$graveyard_summary = [];
 	foreach ($nodelist as $node) {
 		$test1 = $node->childNodes->item(1)->nodeValue;
-		$test2 = $node->childNodes->item(2)->nodeValue;
-		$graveyard_summary[$test1] = $test2;
+		$graveyard_summary[$test1] = $node->childNodes->item(2)->nodeValue;
 	}
-	$final_output['graveyard_summary'] = $graveyard_summary;
+	$final_output['graveyard_summary'][] = $graveyard_summary;
 
 
 	$final_output = RealmEyeAPIUtils::ksort_recursive($final_output);
